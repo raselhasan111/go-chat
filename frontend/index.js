@@ -28,6 +28,11 @@ window.onload = function () {
     if(window["WebSocket"]) {
         console.log("Websocket supported.");
         conn = new WebSocket("ws://" + document.location.host + "/ws")
+
+        // add a listener to the onmessage event
+        conn.onmessage = function (evt) {
+            console.log(evt)
+        }
     } else {
         alert("Not supporting websocket.")
     }

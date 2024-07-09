@@ -12,12 +12,14 @@ type Client struct {
 	connection *websocket.Conn
 
 	manager *Manager
+	egress  chan []byte
 }
 
 func NewClient(conn *websocket.Conn, manager *Manager) *Client {
 	return &Client{
 		connection: conn,
 		manager:    manager,
+		egress:     make(chan []byte),
 	}
 }
 
@@ -38,5 +40,32 @@ func (c *Client) readMessages() {
 		}
 		log.Println("MessageType: ", messageType)
 		log.Println("Payload: ", string(payload))
+
+		// hack to test writeMessage
+		for wsclient := range c.manager.clients {
+			wsclient.egress <- payload
+		}
+	}
+}
+
+func (c *Client) writeMessages() {
+	defer func() {
+		c.manager.removeClient(c)
+	}()
+
+	for {
+		select {
+		case message, ok := <-c.egress:
+			if !ok {
+				if err := c.connection.WriteMessage(websocket.CloseMessage, nil); err != nil {
+					log.Println("connection closed: ", err)
+				}
+				return
+			}
+			if err := c.connection.WriteMessage(websocket.TextMessage, message); err != nil {
+				log.Println(err)
+			}
+			log.Println("sent message")
+		}
 	}
 }
