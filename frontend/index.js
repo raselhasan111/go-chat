@@ -13,12 +13,38 @@ function changeChatRoom() {
     return false;
 }
 
+class Event {
+    constructor(type, payload) {
+        this.type = type;
+        this.payload = payload;
+    }
+}
+
+function routeEvent(event) {
+    if(event.type === undefined) {
+        alert("no 'type' field in event");
+    }
+    switch(event.type) {
+        case "new_message": 
+            console.log("new message");
+            break;
+        default:
+            alert("unsupported message type");
+            break;
+    }
+}
+
 function sendMessage() {
-    var newMessage = document.getElementById("message");
-    if(newMessage !== null) {
-        conn.send(newMessage.value)
+    var new_message = document.getElementById("message");
+    if(new_message !== null) {
+        sendEvent("send_message", new_message.value);
     }
     return false;
+}
+
+function sendEvent(event_name, payload) {
+    const event = new Event(event_name, payload);
+    conn.send(JSON.stringify(event));
 }
 
 window.onload = function () {
@@ -31,7 +57,10 @@ window.onload = function () {
 
         // add a listener to the onmessage event
         conn.onmessage = function (evt) {
-            console.log(evt)
+            console.log(evt);
+            const event_data = JSON.parse(evt.data);
+            const event = Object.assign(new Event, event_data);
+            routeEvent(event);
         }
     } else {
         alert("Not supporting websocket.")
